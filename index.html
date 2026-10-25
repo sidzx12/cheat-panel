@@ -71,7 +71,7 @@
       try {
         const res = await fetch(`${BACKEND}/api/control`, {
           method:'POST',
-          headers:{'Content-Type':'application/json','X-Auth':'ganti-token-ini'},
+          headers:{'Content-Type':'application/json','X-Auth':'https://concord-texts -focus-periods.trycloudflare.com'},
           body:JSON.stringify({ cmd, value, pkg:'com.happproxy' })
         });
         if (!res.ok) throw new Error(await res.text());
@@ -91,7 +91,7 @@
 
     async function poll() {
       try {
-        const res = await fetch(`${BACKEND}/api/status`, { headers:{'X-Auth':'ganti-token-ini'} });
+        const res = await fetch(`${BACKEND}/api/status`, { headers:{'X-Auth':'https://concord-texts -focus-periods.trycloudflare.com'} });
         const data = await res.json();
         document.getElementById('status').textContent = `backend: ${data.device} | frida: ${data.frida}`;
         document.getElementById('status').className = 'status ok';
