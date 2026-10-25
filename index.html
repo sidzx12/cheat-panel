@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Kendali</title>
+  <style>
+    :root { --bg:#0a0e14; --surface:#141b24; --border:#24303d; --accent:#00e5a0; --danger:#ff4d6d; --text:#c9d4e0; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--text); font-family:ui-monospace,monospace; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+    .panel { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; }
+    h1 { font-size:14px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:12px; }
+    .row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); }
+    .row:last-child { border-bottom:none; }
+    .label { font-size:13px; }
+    .toggle { position:relative; width:44px; height:24px; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .slider { position:absolute; inset:0; background:#2a3542; border-radius:24px; cursor:pointer; transition:.2s; }
+    .slider:before { content:""; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:#c9d4e0; border-radius:50%; transition:.2s; }
+    input:checked + .slider { background:var(--accent); }
+    input:checked + .slider:before { transform:translateX(20px); background:var(--bg); }
+    .slider-val { display:flex; align-items:center; gap:8px; font-size:12px; }
+    input[type=range] { width:100px; accent-color:var(--accent); }
+    .status { margin-top:16px; font-size:11px; color:#5a6b7d; }
+    .status.ok { color:var(--accent); }
+    .status.err { color:var(--danger); }
+    #log { margin-top:12px; max-height:120px; overflow:auto; font-size:10px; color:#5a6b7d; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>// control</h1>
+
+    <div class="row">
+      <span class="label">Aimbot</span>
+      <label class="toggle"><input type="checkbox" id="aimbot"><span class="slider"></span></label>
+    </div>
+
+    <div class="row">
+      <span class="label">Silent Aim</span>
+      <label class="toggle"><input type="checkbox" id="silent"><span class="slider"></span></label>
+    </div>
+
+    <div class="row">
+      <span class="label">FOV</span>
+      <div class="slider-val">
+        <input type="range" id="fov" min="0" max="360" value="90">
+        <span id="fovVal">90°</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="label">ESP</span>
+      <label class="toggle"><input type="checkbox" id="esp"><span class="slider"></span></label>
+    </div>
+
+    <div id="status" class="status">backend: offline</div>
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const BACKEND = 'https://concord-texts -focus-periods.trycloudflare.com';
+    const state = { aimbot:false, silent:false, fov:90, esp:false };
+
+    const log = (msg) => {
+      const el = document.getElementById('log');
+      el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.textContent;
+    };
+
+    async function send(cmd, value) {
+      try {
+        const res = await fetch(`${BACKEND}/api/control`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','X-Auth':'ganti-token-ini'},
+          body:JSON.stringify({ cmd, value, pkg:'com.happproxy' })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        log(`${cmd}=${value} -> ${data.status}`);
+      } catch(e) { log(`ERR ${cmd}: ${e.message}`); }
+    }
+
+    document.getElementById('aimbot').addEventListener('change', e => { state.aimbot = e.target.checked; send('aimbot', e.target.checked); });
+    document.getElementById('silent').addEventListener('change', e => { state.silent = e.target.checked; send('silent', e.target.checked); });
+    document.getElementById('esp').addEventListener('change', e => { state.esp = e.target.checked; send('esp', e.target.checked); });
+    document.getElementById('fov').addEventListener('input', e => {
+      state.fov = +e.target.value;
+      document.getElementById('fovVal').textContent = state.fov + '°';
+      send('fov', state.fov);
+    });
+
+    async function poll() {
+      try {
+        const res = await fetch(`${BACKEND}/api/status`, { headers:{'X-Auth':'ganti-token-ini'} });
+        const data = await res.json();
+        document.getElementById('status').textContent = `backend: ${data.device} | frida: ${data.frida}`;
+        document.getElementById('status').className = 'status ok';
+      } catch { document.getElementById('status').className = 'status err'; }
+    }
+    poll(); setInterval(poll, 5000);
+  </script>
+</body>
+</html>
